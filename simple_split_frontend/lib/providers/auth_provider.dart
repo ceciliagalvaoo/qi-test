@@ -13,27 +13,36 @@ class AuthProvider with ChangeNotifier {
 
   // Inicializar provider
   Future<void> initialize() async {
-    if (!_isLoading) return;
+    print('[AuthProvider] 🚀 Iniciando initialize...');
+    
+    if (!_isLoading) {
+      print('[AuthProvider] ⚠️ Já não está loading, saindo...');
+      return;
+    }
     
     try {
+      print('[AuthProvider] 📱 Carregando token...');
       await ApiService.loadToken();
       
-      try {
-        final userData = await ApiService.get('/auth/profile');
-        _user = User.fromJson(userData['user']);
-        _isAuthenticated = true;
-      } catch (e) {
-        await ApiService.removeToken();
-        _isAuthenticated = false;
-        _user = null;
-      }
+      // Verificar se existe token salvo
+      // Por enquanto, como não temos a API /auth/profile funcionando,
+      // vamos apenas limpar o estado e ir para login
+      print('[AuthProvider] 🔑 Token carregado, mas indo direto para login');
+      
+      await ApiService.removeToken();
+      _isAuthenticated = false;
+      _user = null;
+      
+      print('[AuthProvider] ✅ Initialize concluído - não autenticado');
     } catch (e) {
+      print('[AuthProvider] ❌ Erro no initialize: $e');
       _isAuthenticated = false;
       _user = null;
     }
 
     _isLoading = false;
     notifyListeners();
+    print('[AuthProvider] 🏁 Initialize finalizado - isLoading: $_isLoading');
   }
 
   // Login
@@ -47,9 +56,15 @@ class AuthProvider with ChangeNotifier {
         'password': password,
       });
       
+      print('=== DEBUG LOGIN ===');
+      print('Result: $result');
+      print('User data: ${result['user']}');
+      
       // Criar usuário da response do login
       if (result['user'] != null) {
+        print('Criando User.fromJson...');
         _user = User.fromJson(result['user']);
+        print('User criado: $_user');
       }
       
       // Salvar token

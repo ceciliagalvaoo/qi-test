@@ -27,14 +27,7 @@ class SimpleSplitApp extends StatelessWidget {
     return MultiProvider(
       providers: [
         ChangeNotifierProvider(
-          create: (_) {
-            final provider = AuthProvider();
-            // Inicializar após a criação
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              provider.initialize();
-            });
-            return provider;
-          },
+          create: (_) => AuthProvider(),
         ),
       ],
       child: Consumer<AuthProvider>(
@@ -67,12 +60,17 @@ class SimpleSplitApp extends StatelessWidget {
           return '/splash';
         }
 
-        // Se não está autenticado e tentando acessar área protegida
-        if (!authProvider.isAuthenticated && 
-            location != '/splash' &&
-            !location.startsWith('/auth')) {
-          print('[GoRouter] ➡️ Não autenticado, redirecionando para /auth/login');
-          return '/auth/login';
+        // Se não está autenticado (incluindo na splash após loading), redirecionar para login
+        if (!authProvider.isAuthenticated) {
+          if (location.startsWith('/auth')) {
+            // Já está na área de autenticação, permitir
+            print('[GoRouter] ✅ Navegação permitida para área de auth: $location');
+            return null;
+          } else {
+            // Qualquer outra página quando não autenticado -> login
+            print('[GoRouter] ➡️ Não autenticado, redirecionando para /auth/login');
+            return '/auth/login';
+          }
         }
 
         // Se está autenticado e está na splash ou auth, redirecionar para dashboard

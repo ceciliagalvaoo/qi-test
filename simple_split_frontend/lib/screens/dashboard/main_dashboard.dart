@@ -30,6 +30,8 @@ class _MainDashboardState extends State<MainDashboard> {
   }
 
   Future<void> _loadDashboardData() async {
+    if (!mounted) return;
+    
     setState(() => _isLoading = true);
 
     try {
@@ -37,11 +39,16 @@ class _MainDashboardState extends State<MainDashboard> {
       
       final authProvider = context.read<AuthProvider>();
       
-      if (!authProvider.isAuthenticated) {
+      if (!authProvider.isAuthenticated || authProvider.user == null) {
         print('[DEBUG] Usuário não autenticado!');
-        setState(() => _isLoading = false);
+        if (mounted) {
+          setState(() => _isLoading = false);
+        }
         return;
       }
+
+      final currentUser = authProvider.user!;
+      print('[DEBUG] Usuário logado: ${currentUser.name} (ID: ${currentUser.id})');
 
       // Carregar dados em paralelo das APIs reais
       final futures = await Future.wait([
@@ -50,30 +57,37 @@ class _MainDashboardState extends State<MainDashboard> {
         _loadDebts(),
       ]);
 
-      setState(() {
-        _groups = futures[0];
-        _recentExpenses = futures[1];
-        _debts = futures[2];
+      if (mounted) {
+        setState(() {
+          _groups = futures[0];
+          _recentExpenses = futures[1];
+          _debts = futures[2];
+          
+          // Calcular saldo da carteira baseado nas dívidas - FORA do setState
+          _isLoading = false;
+        });
         
-        // Calcular saldo da carteira baseado nas dívidas
-        _walletBalance = _calculateWalletBalance();
-      });
+        // Calcular saldo após setState para evitar problemas
+        _walletBalance = _calculateWalletBalance(currentUser);
+      }
       
       print('[DEBUG] Dados carregados com sucesso!');
       print('[DEBUG] Grupos: ${_groups.length}, Despesas: ${_recentExpenses.length}, Dívidas: ${_debts.length}');
+      print('[DEBUG] Saldo calculado: $_walletBalance');
     } catch (e) {
-      print('Erro ao carregar dados do dashboard: $e');
+      print('❌ Erro ao carregar dados do dashboard: $e');
       
       // Em caso de erro, usar dados vazios ao invés de mockados
-      setState(() {
-        _groups = [];
-        _recentExpenses = [];
-        _debts = [];
-        _walletBalance = 0.0;
-      });
+      if (mounted) {
+        setState(() {
+          _groups = [];
+          _recentExpenses = [];
+          _debts = [];
+          _walletBalance = 0.0;
+          _isLoading = false;
+        });
+      }
     }
-
-    setState(() => _isLoading = false);
   }
 
   Future<List<Map<String, dynamic>>> _loadGroups() async {
@@ -162,31 +176,43 @@ class _MainDashboardState extends State<MainDashboard> {
     return [];
   }
 
-  double _calculateWalletBalance() {
+  double _calculateWalletBalance(User? currentUser) {
+    if (currentUser == null || _debts.isEmpty) {
+      print('[DEBUG] Usuário nulo ou sem dívidas para calcular saldo');
+      return 0.0;
+    }
+    
     double balance = 0.0;
     
     try {
-      final currentUser = context.read<AuthProvider>().user;
-      if (currentUser == null) {
-        print('[DEBUG] Usuário não disponível para calcular saldo');
-        return 0.0;
-      }
+      print('[DEBUG] Calculando saldo para usuário: ${currentUser.id}');
       
       for (final debt in _debts) {
         final amount = (debt['amount'] as num?)?.toDouble() ?? 0.0;
-        final status = debt['status'] as String? ?? '';
+        final status = debt['status']?.toString() ?? '';
         
-        if (status == 'pending') {
-          // Verificar se os campos existem antes de comparar
-          final creditorId = debt['creditor_id'];
-          if (creditorId != null) {
-            final isCreditor = creditorId.toString() == currentUser.id;
-            balance += isCreditor ? amount : -amount;
+        if (status == 'pending' && amount > 0) {
+          final creditorId = debt['creditor_id']?.toString();
+          final debtorId = debt['debtor_id']?.toString();
+          
+          print('[DEBUG] Dívida - Amount: $amount, Creditor: $creditorId, Debtor: $debtorId');
+          
+          if (creditorId == currentUser.id) {
+            // Usuário é credor - recebe dinheiro (+)
+            balance += amount;
+            print('[DEBUG] Usuário é CREDOR: +$amount');
+          } else if (debtorId == currentUser.id) {
+            // Usuário é devedor - deve dinheiro (-)
+            balance -= amount;
+            print('[DEBUG] Usuário é DEVEDOR: -$amount');
           }
         }
       }
-    } catch (e) {
+      
+      print('[DEBUG] Saldo final calculado: $balance');
+    } catch (e, stackTrace) {
       print('[DEBUG] Erro ao calcular saldo da carteira: $e');
+      print('[DEBUG] Stack: $stackTrace');
       return 0.0;
     }
     
@@ -195,15 +221,43 @@ class _MainDashboardState extends State<MainDashboard> {
 
   @override
   Widget build(BuildContext context) {
-    final authProvider = context.watch<AuthProvider>();
-    final user = authProvider.user;
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        final user = authProvider.user;
+        
+        // Se ainda está carregando ou não há usuário, mostrar loading
+        if (_isLoading || authProvider.isLoading) {
+          return Scaffold(
+            backgroundColor: AppColors.background,
+            body: const Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 16),
+                  Text('Carregando dashboard...'),
+                ],
+              ),
+            ),
+          );
+        }
+        
+        // Se não está autenticado, não deveria estar aqui
+        if (!authProvider.isAuthenticated || user == null) {
+          return Scaffold(
+            backgroundColor: AppColors.background,
+            body: const Center(
+              child: Text('Erro: Usuário não autenticado'),
+            ),
+          );
+        }
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: _isLoading 
-          ? const Center(child: CircularProgressIndicator())
-          : _buildDashboard(user),
-      bottomNavigationBar: _buildBottomNavigationBar(),
+        return Scaffold(
+          backgroundColor: AppColors.background,
+          body: _buildDashboard(user),
+          bottomNavigationBar: _buildBottomNavigationBar(),
+        );
+      },
     );
   }
 
@@ -622,6 +676,9 @@ class _MainDashboardState extends State<MainDashboard> {
       );
     }
 
+    // Obter o usuário atual uma vez só, fora do ListView.builder
+    final currentUser = context.read<AuthProvider>().user;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -634,15 +691,15 @@ class _MainDashboardState extends State<MainDashboard> {
           itemCount: pendingDebts.take(3).length,
           itemBuilder: (context, index) {
             final debt = pendingDebts[index];
-            return _buildDebtItem(debt);
+            return _buildDebtItem(debt, currentUser);
           },
         ),
       ],
     );
   }
 
-  Widget _buildDebtItem(Map<String, dynamic> debt) {
-    final currentUserId = context.read<AuthProvider>().user?.id;
+  Widget _buildDebtItem(Map<String, dynamic> debt, User? currentUser) {
+    final currentUserId = currentUser?.id;
     final debtorId = debt['debtor_id'];
     final isDebtor = currentUserId != null && debtorId != null && debtorId.toString() == currentUserId;
     
