@@ -1,0 +1,8 @@
+{
+  "label": "Arquitetura Técnica",
+  "position": 3,
+  "link": {
+    "type": "generated-index",
+    "description": "Stack tecnológico, integração com APIs da QI Tech, banco de dados e diagramas de arquitetura."
+  }
+}

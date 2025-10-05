@@ -1,0 +1,37 @@
+:root {
+  /* Azul-Roxo principal (gradiente base do fundo */
+  --ifm-color-primary: #2b2be8;
+  --ifm-color-primary-dark: #2424c2;
+  --ifm-color-primary-darker: #1d1d9e;
+  --ifm-color-primary-darkest: #151570;
+
+  /* Azul-lilás mais claro para hovers/botões */
+  --ifm-color-primary-light: #4848f0;
+  --ifm-color-primary-lighter: #6767f5;
+  --ifm-color-primary-lightest: #8787fa;
+
+  /* Destaques */
+  --ifm-color-secondary: #ffffff; /* textos brancos sobre fundo escuro */
+  --ifm-color-info: #9a9aff;      /* usado em cartões e hover */
+  --ifm-color-success: #2ecc71;   /* se precisar verde de "confirmação" */
+
+  --ifm-code-font-size: 95%;
+  --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.1);
+}
+
+/* Dark mode: tons mais suaves para leitura */
+[data-theme='dark'] {
+  --ifm-color-primary: #6767f5;
+  --ifm-color-primary-dark: #5858d8;
+  --ifm-color-primary-darker: #4747b8;
+  --ifm-color-primary-darkest: #35358a;
+  --ifm-color-primary-light: #8787fa;
+  --ifm-color-primary-lighter: #a3a3ff;
+  --ifm-color-primary-lightest: #c1c1ff;
+
+  --docusaurus-highlighted-code-line-bg: rgba(255, 255, 255, 0.2);
+}
+
+.footer {
+  position: static !important;
+}
