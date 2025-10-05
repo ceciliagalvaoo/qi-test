@@ -35,6 +35,9 @@ dependencies:
   
   # Icons
   phosphor_flutter: ^2.0.1
+  
+  # URL Launcher
+  url_launcher: ^6.2.1
 
 dev_dependencies:
   flutter_test:
