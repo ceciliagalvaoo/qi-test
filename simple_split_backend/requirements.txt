@@ -6,3 +6,4 @@ Werkzeug>=3.0.0
 SQLAlchemy>=2.0.36
 bcrypt>=4.1.2
 python-dotenv>=1.0.0
+gunicorn>=20.1.0
