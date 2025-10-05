@@ -508,7 +508,7 @@ class _UserScreenState extends State<UserScreen> {
   }
 
   Future<void> _launchQiTechUrl() async {
-    final Uri url = Uri.parse('https://docs.qitech.com.br/documentation/primeiros_passos/inicio');
+    final Uri url = Uri.parse('https://zzaved.github.io/The-Simple-Split/');
     
     try {
       if (await canLaunchUrl(url)) {
