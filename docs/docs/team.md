@@ -13,15 +13,6 @@ O grupo combina experiência em desenvolvimento **Flutter**, **backend Python**,
 ## Cecília Beatriz Melo Galvão  
 **Desenvolvedora Backend e Flutter**
 
-<p style={{textAlign: 'center'}}> Cecília Beatriz Melo Galvão </p>
-<div style={{margin: 15}}>
-    <div style={{textAlign: 'center'}}>
-        <img src={require("../static/img/Cecilia.jpg").default} style={{width: 300}} alt="Cecília Beatriz Melo Galvão" />
-        <br />
-    </div>
-</div>
-<p style={{textAlign: 'center'}}> Fonte: Os autores (2025).</p>
-
 - **Formação**: Engenharia da Computação – Inteli  
 - **Experiência técnica relevante**:
   - Desenvolvimento de aplicações móveis com **Flutter** e backend em **Python (FastAPI)**.  
@@ -38,15 +29,6 @@ O grupo combina experiência em desenvolvimento **Flutter**, **backend Python**,
 
 ## Pablo de Azevedo  
 **Analista de Negócios e Designer de Produto**
-
-<p style={{textAlign: 'center'}}> Pablo de Azevedo </p>
-<div style={{margin: 15}}>
-    <div style={{textAlign: 'center'}}>
-        <img src={require("../static/img/Pablo.jpg").default} style={{width: 300}} alt="Pablo de Azevedo" />
-        <br />
-    </div>
-</div>
-<p style={{textAlign: 'center'}}> Fonte: Os autores (2025).</p>
 
 - **Formação**: Engenharia da Computação – Inteli  
 - **Experiência técnica e de produto**:

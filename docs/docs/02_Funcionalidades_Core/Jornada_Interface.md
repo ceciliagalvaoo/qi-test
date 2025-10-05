@@ -57,25 +57,21 @@ O sistema utiliza componentes reutilizáveis e consistentes, incluindo:
 Tela de entrada com campos de e-mail e senha.  
 Inclui botão “Entrar” e link para “Criar Conta”.  
 A interface é centrada e utiliza fundo branco e tipografia fina.  
-*(Placeholder para imagem da tela de autenticação)*
 
 ### Criação de Conta
 
 Ao selecionar “Criar Conta”, o usuário informa nome, e-mail e senha.  
 O sistema envia um código de verificação para o e-mail cadastrado.  
-*(Placeholder para imagem da tela de criação de conta)*
 
 ### Verificação 2FA
 
 O código enviado é inserido pelo usuário para validação em duas etapas.  
 Após confirmação, a conta é ativada.  
-*(Placeholder para imagem da tela de verificação 2FA)*
 
 ### Primeiro Acesso
 
 Após login, o usuário é conduzido a uma introdução curta sobre as principais funcionalidades da aplicação.  
 O objetivo é orientar o novo usuário sobre grupos, carteira e marketplace.  
-*(Placeholder para imagem da tela de introdução)*
 
 ---
 
@@ -85,7 +81,6 @@ O objetivo é orientar o novo usuário sobre grupos, carteira e marketplace.
 
 O Dashboard é o ponto central da navegação.  
 Apresenta as principais informações financeiras de forma resumida e permite acesso rápido às cinco abas principais.  
-*(Placeholder para imagem do dashboard principal)*
 
 ### Menu Inferior (5 abas)
 
@@ -113,30 +108,25 @@ Não há recarregamento completo da tela, o que melhora a experiência do usuár
 
 O usuário cria um grupo atribuindo nome e descrição.  
 Pode convidar contatos da lista para participar.  
-*(Placeholder para imagem da tela de criação de grupo)*
 
 #### Visualização de Grupo
 
 Cada grupo é exibido em um card com informações resumidas: nome, participantes e saldo total.  
-*(Placeholder para imagem da visualização do grupo)*
 
 #### Registro de Despesas
 
 Dentro de um grupo, o usuário registra despesas, informando valor, descrição e quem pagou.  
 O sistema calcula automaticamente quanto cada participante deve.  
-*(Placeholder para imagem da tela de registro de despesas)*
 
 #### Visualização de Dívidas
 
 A tela apresenta uma lista clara de quem deve a quem e quanto.  
 Valores positivos e negativos são destacados com cores distintas.  
-*(Placeholder para imagem da tela de visualização de dívidas)*
 
 #### Logs Automáticos
 
 Quando o sistema identifica compensações possíveis, exibe logs automáticos de quitação.  
 Esses registros são mostrados em cartões cinza com informações detalhadas.  
-*(Placeholder para imagem da tela de logs automáticos)*
 
 ---
 
@@ -146,18 +136,15 @@ Esses registros são mostrados em cartões cinza com informações detalhadas.
 
 Exibe todos os contatos registrados no aplicativo, organizados alfabeticamente.  
 Cada contato mostra nome e score.  
-*(Placeholder para imagem da lista de contatos)*
 
 #### Score Visível
 
 O score (0 a 10) aparece ao lado do nome do contato.  
 Um botão de informação explica o cálculo do score.  
-*(Placeholder para imagem do score visível)*
 
 #### Anúncios de Recebíveis
 
 Abaixo de cada contato, aparecem anúncios de recebíveis disponíveis para compra.  
-*(Placeholder para imagem de anúncios de recebíveis)*
 
 ---
 
@@ -166,17 +153,14 @@ Abaixo de cada contato, aparecem anúncios de recebíveis disponíveis para comp
 #### Notificações Inteligentes
 
 Exibe alertas de movimentações importantes, como quitação de dívidas e novas oportunidades no marketplace.  
-*(Placeholder para imagem de notificações inteligentes)*
 
 #### Alertas de Pagamento
 
 Mostra lembretes de pagamentos próximos do vencimento.  
-*(Placeholder para imagem de alertas de pagamento)*
 
 #### Logs Recentes
 
 Lista as últimas operações automáticas de compensação de dívidas.  
-*(Placeholder para imagem dos logs recentes)*
 
 ---
 
@@ -185,22 +169,18 @@ Lista as últimas operações automáticas de compensação de dívidas.
 #### Listagem de Títulos
 
 Apresenta todos os títulos disponíveis com informações de valor nominal, preço de venda e score do vendedor.  
-*(Placeholder para imagem da listagem de títulos)*
 
 #### Detalhes do Título
 
 Ao selecionar um título, o usuário visualiza detalhes sobre o valor, prazo e condições de compra.  
-*(Placeholder para imagem dos detalhes do título)*
 
 #### Compra de Recebível
 
 O usuário pode comprar um título diretamente, utilizando o saldo da carteira digital.  
-*(Placeholder para imagem da compra de recebível)*
 
 #### Anonimização
 
 As identidades dos compradores e vendedores permanecem ocultas; apenas o score é visível.  
-*(Placeholder para imagem de anonimização no marketplace)*
 
 ---
 
@@ -209,29 +189,27 @@ As identidades dos compradores e vendedores permanecem ocultas; apenas o score �
 #### Nome e Score
 
 Mostra o nome do usuário e seu score de reputação.  
-*(Placeholder para imagem da tela de perfil com score)*
 
 #### Carteira Digital
 
 Apresenta o saldo atual e atalhos para adicionar fundos, pagar ou transferir.  
-*(Placeholder para imagem da carteira digital)*
 
 #### A Receber
 
 Lista todas as dívidas e títulos comprados pendentes de recebimento.  
-*(Placeholder para imagem da seção “A Receber”)*
 
 #### A Pagar
 
 Exibe as dívidas e obrigações pendentes do usuário.  
-*(Placeholder para imagem da seção “A Pagar”)*
 
 #### Histórico
 
 Mostra todas as movimentações e logs financeiros do usuário.  
-*(Placeholder para imagem da tela de histórico)*
-
 ---
+
+## Demonstrativo
+
+![The Simple Split](./assets/arquivo.gif)
 
 ## Fluxos de Interação
 
