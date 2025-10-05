@@ -30,7 +30,7 @@ class AppColors {
 }
 
 class AppTextStyles {
-  static const String fontFamily = 'SFProDisplay';
+  static const String fontFamily = 'Poppins';
   
   // Títulos
   static const TextStyle largeTitle = TextStyle(

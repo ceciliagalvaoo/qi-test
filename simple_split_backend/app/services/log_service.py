@@ -47,8 +47,8 @@ class LogService:
         Otimiza dívidas encontrando ciclos e cancelando dívidas cruzadas
         Exemplo: A deve B, B deve C, C deve A -> todos quitados se valores iguais
         """
-        # Buscar todas as dívidas pendentes
-        pending_debts = Debt.query.filter_by(status='pending').all()
+        # Buscar todas as dívidas pendentes (excluindo vendidas)
+        pending_debts = Debt.get_pending_debts().all()
         
         # Agrupar por grupo para otimização local
         debts_by_group = defaultdict(list)

@@ -40,7 +40,7 @@ class GroupService {
   }
 
   // Obter detalhes de um grupo
-  static Future<Map<String, dynamic>> getGroupDetail(int groupId) async {
+  static Future<Map<String, dynamic>> getGroupDetail(String groupId) async {
     try {
       final response = await ApiService.get('/groups/$groupId');
 
@@ -65,7 +65,7 @@ class GroupService {
 
   // Adicionar membro ao grupo
   static Future<Map<String, dynamic>> addMember({
-    required int groupId,
+    required String groupId,
     required String memberEmail,
   }) async {
     try {
@@ -88,7 +88,7 @@ class GroupService {
 
   // Adicionar despesa ao grupo
   static Future<Map<String, dynamic>> addExpense({
-    required int groupId,
+    required String groupId,
     required String description,
     required double amount,
     String? date,
@@ -119,8 +119,8 @@ class GroupService {
 
   // Deletar despesa
   static Future<Map<String, dynamic>> deleteExpense({
-    required int groupId,
-    required int expenseId,
+    required String groupId,
+    required String expenseId,
   }) async {
     try {
       final response = await ApiService.delete('/groups/$groupId/expenses/$expenseId');

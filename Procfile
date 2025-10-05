@@ -1,0 +1,1 @@
+web: cd simple_split_backend && gunicorn --bind 0.0.0.0:$PORT run:app

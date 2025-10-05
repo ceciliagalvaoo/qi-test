@@ -23,7 +23,7 @@ class Wallet(db.Model):
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
     
-    def add_funds(self, amount, description="Adicionar saldo"):
+    def add_funds(self, amount, description="Adicionar saldo", auto_commit=True):
         """Adiciona fundos à carteira"""
         self.balance += amount
         
@@ -34,10 +34,12 @@ class Wallet(db.Model):
             description=description
         )
         db.session.add(transaction)
-        db.session.commit()
+        
+        if auto_commit:
+            db.session.commit()
         return True
     
-    def withdraw_funds(self, amount, description="Saque"):
+    def withdraw_funds(self, amount, description="Saque", auto_commit=True):
         """Remove fundos da carteira"""
         if self.balance >= amount:
             self.balance -= amount
@@ -49,7 +51,9 @@ class Wallet(db.Model):
                 description=description
             )
             db.session.add(transaction)
-            db.session.commit()
+            
+            if auto_commit:
+                db.session.commit()
             return True
         return False
 

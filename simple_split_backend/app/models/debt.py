@@ -10,9 +10,11 @@ class Debt(db.Model):
     debtor_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
     creditor_id = db.Column(db.String(36), db.ForeignKey('users.id'), nullable=False)
     amount = db.Column(db.Float, nullable=False)
-    status = db.Column(db.String(20), default='pending')  # pending, paid, cancelled
+    status = db.Column(db.String(20), default='pending')  # pending, paid, cancelled, sold_as_title
+    source = db.Column(db.String(20), default='group_debt')  # group_debt, purchased_title, virtual_payment
     due_date = db.Column(db.Date, nullable=True)
     paid_at = db.Column(db.DateTime, nullable=True)
+    sold_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     def to_dict(self):
@@ -25,8 +27,10 @@ class Debt(db.Model):
             'creditor_name': self.creditor.name if self.creditor else None,
             'amount': self.amount,
             'status': self.status,
+            'source': self.source,
             'due_date': self.due_date.isoformat() if self.due_date else None,
             'paid_at': self.paid_at.isoformat() if self.paid_at else None,
+            'sold_at': self.sold_at.isoformat() if self.sold_at else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'expense_description': self.expense.description if self.expense else None
         }
@@ -46,3 +50,13 @@ class Debt(db.Model):
         """Cancela a dívida"""
         self.status = 'cancelled'
         db.session.commit()
+    
+    @classmethod
+    def get_pending_debts(cls, **kwargs):
+        """Buscar apenas dívidas verdadeiramente pendentes (excluindo vendidas como títulos)"""
+        return cls.query.filter_by(status='pending', **kwargs)
+    
+    @classmethod 
+    def get_available_for_sale_debts(cls, creditor_id):
+        """Buscar dívidas que podem ser vendidas no marketplace (apenas pending)"""
+        return cls.query.filter_by(creditor_id=creditor_id, status='pending')

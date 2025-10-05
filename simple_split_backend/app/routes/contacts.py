@@ -16,9 +16,9 @@ def get_contacts():
     # Para MVP, vamos considerar como contatos todos os usuários que têm dívidas com o usuário atual
     # ou estão no mesmo grupo
     
-    # Buscar usuários que têm dívidas com o usuário atual
-    debts_as_creditor = Debt.query.filter_by(creditor_id=user_id, status='pending').all()
-    debts_as_debtor = Debt.query.filter_by(debtor_id=user_id, status='pending').all()
+    # Buscar usuários que têm dívidas com o usuário atual (excluindo vendidas)
+    debts_as_creditor = Debt.get_pending_debts(creditor_id=user_id).all()
+    debts_as_debtor = Debt.get_pending_debts(debtor_id=user_id).all()
     
     contact_ids = set()
     for debt in debts_as_creditor:

@@ -188,4 +188,20 @@ class AuthProvider with ChangeNotifier {
       // Silenciosamente falha se não conseguir atualizar
     }
   }
+
+  // Recarregar dados do usuário após alterações no perfil
+  Future<bool> refreshUserData() async {
+    try {
+      final response = await ApiService.get('/user/profile');
+      if (response['user'] != null) {
+        _user = User.fromJson(response['user']);
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      print('[AuthProvider] Erro ao recarregar dados do usuário: $e');
+      return false;
+    }
+  }
 }

@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../services/api_service.dart';
 import '../../utils/theme.dart';
 
 class InsightsScreen extends StatefulWidget {
-  const InsightsScreen({super.key});
+  final bool showAppBar;
+  final bool showBottomNavigation;
+  
+  const InsightsScreen({
+    super.key,
+    this.showAppBar = true,
+    this.showBottomNavigation = true,
+  });
 
   @override
   State<InsightsScreen> createState() => _InsightsScreenState();
@@ -24,11 +32,64 @@ class _InsightsScreenState extends State<InsightsScreen> {
     setState(() => _isLoading = true);
 
     try {
-      final result = await ApiService.get('/insights');
+      // Buscar insights, resumo e transações em paralelo
+      final responses = await Future.wait([
+        ApiService.get('/insights'),
+        ApiService.get('/insights/summary'),
+        ApiService.get('/user/wallet/transactions'),
+      ]);
+
+      final insightsResponse = responses[0];
+      final summaryResponse = responses[1];
+      final transactionsResponse = responses[2];
+
+      // A API /insights retorna diretamente uma lista de insights
+      List<dynamic> insightsList = [];
+      if (insightsResponse is List<dynamic>) {
+        insightsList = insightsResponse;
+      } else {
+        // Se por algum motivo retornar um mapa, tentar extrair a lista
+        insightsList = [];
+      }
+
+      // Garantir que summaryResponse é um Map
+      Map<String, dynamic> summary = {};
+      if (summaryResponse is Map<String, dynamic>) {
+        summary = summaryResponse;
+      }
+
+      // Processar transações
+      List<dynamic> transactionsList = [];
+      if (transactionsResponse is List<dynamic>) {
+        transactionsList = transactionsResponse;
+      } else if (transactionsResponse is Map<String, dynamic> && 
+                 transactionsResponse.containsKey('transactions')) {
+        transactionsList = transactionsResponse['transactions'] ?? [];
+      }
+
       setState(() {
-        _insightsData = result;
+        _insightsData = {
+          'insights': insightsList,
+          'financial_summary': {
+            'total_spent': summary['total_spent'] ?? 0.0,          // Total gasto (da API)
+            'wallet_balance': summary['wallet_balance'] ?? 0.0,    // Saldo da carteira  
+            'total_to_receive': summary['total_to_receive'] ?? 0.0, // A receber
+            'total_to_pay': summary['total_to_pay'] ?? 0.0,        // A pagar
+          },
+          'spending_insights': {
+            'top_categories': _calculateSpendingCategories(transactionsList),
+          },
+          'social_insights': {
+            'active_groups': summary['active_groups'] ?? 0,
+            'total_contacts': 20, // Número padrão de contatos com conta no app
+            'user_score': summary['score'] ?? 0.0,
+            'total_transactions': transactionsList.length,
+          },
+          'recommendations': _transformInsightsToRecommendations(insightsList),
+        };
       });
     } catch (e) {
+      print('Erro ao carregar insights: $e');
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erro ao carregar insights: ${e.toString()}'),
@@ -40,11 +101,107 @@ class _InsightsScreenState extends State<InsightsScreen> {
     setState(() => _isLoading = false);
   }
 
+
+
+  List<Map<String, dynamic>> _calculateSpendingCategories(List<dynamic> transactions) {
+    Map<String, double> categoryTotals = {};
+    double totalSpent = 0.0;
+    
+    // Agrupar gastos por descrição/categoria
+    for (final transaction in transactions) {
+      try {
+        final type = transaction['type']?.toString() ?? '';
+        final amount = (transaction['amount'] as num?)?.toDouble() ?? 0.0;
+        final description = transaction['description']?.toString() ?? 'Outros';
+        
+        if (type == 'debit' && amount > 0) {
+          // Categorizar baseado na descrição
+          String category = _categorizeTransaction(description);
+          categoryTotals[category] = (categoryTotals[category] ?? 0.0) + amount;
+          totalSpent += amount;
+        }
+      } catch (e) {
+        // Ignorar transações com formato inválido
+        continue;
+      }
+    }
+    
+    // Converter para lista e calcular percentuais
+    List<Map<String, dynamic>> categories = [];
+    
+    categoryTotals.entries.forEach((entry) {
+      final percentage = totalSpent > 0 ? (entry.value / totalSpent) * 100 : 0.0;
+      categories.add({
+        'name': entry.key,
+        'amount': entry.value,
+        'percentage': percentage,
+      });
+    });
+    
+    // Ordenar por valor (maior para menor)
+    categories.sort((a, b) => (b['amount'] as double).compareTo(a['amount'] as double));
+    
+    // Retornar apenas os top 5
+    return categories.take(5).toList();
+  }
+
+  String _categorizeTransaction(String description) {
+    final desc = description.toLowerCase();
+    
+    if (desc.contains('pagamento') || desc.contains('dívida')) {
+      return 'Pagamentos';
+    } else if (desc.contains('transferência') || desc.contains('enviada')) {
+      return 'Transferências';
+    } else if (desc.contains('taxa') || desc.contains('serviço')) {
+      return 'Taxas';
+    } else if (desc.contains('marketplace') || desc.contains('compra')) {
+      return 'Compras';
+    } else if (desc.contains('saque')) {
+      return 'Saques';
+    } else {
+      return 'Outros';
+    }
+  }
+
+  List<Map<String, dynamic>> _transformInsightsToRecommendations(List<dynamic> insights) {
+    return insights.where((insight) => 
+      insight['type'] == 'payment_reminder' || 
+      insight['type'] == 'score_warning' ||
+      insight['type'] == 'spending_summary'
+    ).map<Map<String, dynamic>>((insight) {
+      String type = 'info';
+      if (insight['priority'] == 'high') {
+        type = 'warning';
+      } else if (insight['type'] == 'score_good') {
+        type = 'savings';
+      }
+      
+      return {
+        'type': type,
+        'message': insight['description'] ?? insight['title'] ?? '',
+      };
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final body = _isLoading 
+        ? const Center(child: CircularProgressIndicator())
+        : _insightsData == null
+            ? _buildErrorState()
+            : RefreshIndicator(
+                onRefresh: _loadInsights,
+                child: _buildInsights(),
+              );
+    
+    // Se não deve mostrar AppBar nem BottomNavigation, retorna apenas o body
+    if (!widget.showAppBar && !widget.showBottomNavigation) {
+      return body;
+    }
+    
     return Scaffold(
       backgroundColor: AppColors.background,
-      appBar: AppBar(
+      appBar: widget.showAppBar ? AppBar(
         title: const Text('Insights'),
         backgroundColor: AppColors.primary,
         foregroundColor: Colors.white,
@@ -54,15 +211,61 @@ class _InsightsScreenState extends State<InsightsScreen> {
             icon: const Icon(Icons.refresh),
           ),
         ],
-      ),
-      body: _isLoading 
-          ? const Center(child: CircularProgressIndicator())
-          : _insightsData == null
-              ? _buildErrorState()
-              : RefreshIndicator(
-                  onRefresh: _loadInsights,
-                  child: _buildInsights(),
-                ),
+      ) : null,
+      body: body,
+      bottomNavigationBar: widget.showBottomNavigation ? BottomNavigationBar(
+        currentIndex: 3, // Insights está no índice 3
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              context.go('/dashboard');
+              break;
+            case 1:
+              context.go('/groups');
+              break;
+            case 2:
+              context.go('/marketplace');
+              break;
+            case 3:
+              // Já está na tela de insights
+              break;
+            case 4:
+              context.go('/user');
+              break;
+          }
+        },
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: AppColors.surface,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.onSurfaceVariant,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Início',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.group_outlined),
+            activeIcon: Icon(Icons.group),
+            label: 'Grupos',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.storefront_outlined),
+            activeIcon: Icon(Icons.storefront),
+            label: 'Marketplace',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.insights_outlined),
+            activeIcon: Icon(Icons.insights),
+            label: 'Insights',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Perfil',
+          ),
+        ],
+      ) : null,
     );
   }
 
@@ -159,10 +362,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
               children: [
                 Expanded(
                   child: _buildSummaryItem(
-                    title: 'Gastos este mês',
-                    value: 'R\$ ${(summary['monthly_expenses'] as num? ?? 0).toStringAsFixed(2)}',
+                    title: 'Total Gasto',
+                    value: 'R\$ ${(summary['total_spent'] as num? ?? 0).toStringAsFixed(2)}',
                     color: AppColors.error,
-                    icon: Icons.trending_up,
+                    icon: Icons.trending_down,
                   ),
                 ),
                 
@@ -170,10 +373,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
                 
                 Expanded(
                   child: _buildSummaryItem(
-                    title: 'A receber',
-                    value: 'R\$ ${(summary['total_receivables'] as num? ?? 0).toStringAsFixed(2)}',
-                    color: AppColors.success,
-                    icon: Icons.trending_down,
+                    title: 'Saldo Líquido',
+                    value: 'R\$ ${(summary['wallet_balance'] as num? ?? 0).toStringAsFixed(2)}',
+                    color: AppColors.primary,
+                    icon: Icons.account_balance_wallet,
                   ),
                 ),
               ],
@@ -185,10 +388,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
               children: [
                 Expanded(
                   child: _buildSummaryItem(
-                    title: 'A pagar',
-                    value: 'R\$ ${(summary['total_debts'] as num? ?? 0).toStringAsFixed(2)}',
-                    color: AppColors.warning,
-                    icon: Icons.schedule,
+                    title: 'A Receber',
+                    value: 'R\$ ${(summary['total_to_receive'] as num? ?? 0).toStringAsFixed(2)}',
+                    color: AppColors.success,
+                    icon: Icons.trending_up,
                   ),
                 ),
                 
@@ -196,12 +399,10 @@ class _InsightsScreenState extends State<InsightsScreen> {
                 
                 Expanded(
                   child: _buildSummaryItem(
-                    title: 'Saldo líquido',
-                    value: 'R\$ ${(summary['net_balance'] as num? ?? 0).toStringAsFixed(2)}',
-                    color: (summary['net_balance'] as num? ?? 0) >= 0 
-                        ? AppColors.success 
-                        : AppColors.error,
-                    icon: Icons.account_balance,
+                    title: 'A Pagar',
+                    value: 'R\$ ${(summary['total_to_pay'] as num? ?? 0).toStringAsFixed(2)}',
+                    color: AppColors.error,
+                    icon: Icons.trending_down,
                   ),
                 ),
               ],

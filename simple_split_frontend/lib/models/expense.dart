@@ -1,6 +1,6 @@
 class Expense {
-  final int id;
-  final int groupId;
+  final String id;
+  final String groupId;
   final String payerId; // Mudado de int para String (UUID)
   final String? payerName;
   final String description;
@@ -23,8 +23,8 @@ class Expense {
 
   factory Expense.fromJson(Map<String, dynamic> json) {
     return Expense(
-      id: json['id'],
-      groupId: json['group_id'],
+      id: json['id'].toString(),
+      groupId: json['group_id'].toString(),
       payerId: json['payer_id'].toString(), // Garantir que seja String
       payerName: json['payer_name'],
       description: json['description'],
@@ -55,8 +55,8 @@ class Expense {
 }
 
 class Debt {
-  final int id;
-  final int expenseId;
+  final String id;
+  final String expenseId;
   final String debtorId; // Mudado de int para String (UUID)
   final String? debtorName;
   final String creditorId; // Mudado de int para String (UUID)
@@ -85,8 +85,8 @@ class Debt {
 
   factory Debt.fromJson(Map<String, dynamic> json) {
     return Debt(
-      id: json['id'],
-      expenseId: json['expense_id'],
+      id: json['id'].toString(),
+      expenseId: json['expense_id'].toString(),
       debtorId: json['debtor_id'].toString(), // Garantir que seja String
       debtorName: json['debtor_name'],
       creditorId: json['creditor_id'].toString(), // Garantir que seja String

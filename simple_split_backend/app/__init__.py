@@ -1,7 +1,6 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request, send_from_directory, send_file
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
-from flask_cors import CORS
 import os
 from datetime import timedelta
 
@@ -11,17 +10,20 @@ jwt = JWTManager()
 def create_app():
     app = Flask(__name__)
     
-    # Configurações
-    app.config['SECRET_KEY'] = 'simple-split-secret-key-2025'
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///simple_split.db'
+    # Configurações com suporte para variáveis de ambiente
+    app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'simple-split-secret-key-2025')
+    app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///simple_split.db')
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    app.config['JWT_SECRET_KEY'] = 'jwt-simple-split-secret-2025'
+    app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY', 'jwt-simple-split-secret-2025')
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
+    
+    # Evitar redirecionamentos automáticos que quebram CORS
+    app.url_map.strict_slashes = False
     
     # Inicializar extensões
     db.init_app(app)
     jwt.init_app(app)
-    CORS(app)
+    # CORS será configurado manualmente nos handlers abaixo
     
     # Registrar blueprints
     from app.routes.auth import auth_bp
@@ -46,10 +48,53 @@ def create_app():
     from app.routes.user import get_user_profile
     app.add_url_rule('/api/users/profile', 'users_profile', get_user_profile, methods=['GET'])
     
-    # Endpoint raiz de teste
+    # Handler global para CORS
+    @app.before_request
+    def handle_preflight():
+        if request.method == "OPTIONS":
+            response = jsonify()
+            response.headers["Access-Control-Allow-Origin"] = "http://localhost:8081"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+            response.headers["Access-Control-Allow-Methods"] = "GET,PUT,POST,DELETE,OPTIONS"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            return response
+    
+    @app.after_request
+    def after_request(response):
+        # CORS dinâmico baseado no ambiente
+        allowed_origins = [
+            "http://localhost:8081",
+            "https://simple-split.vercel.app",
+            "https://*.vercel.app"
+        ]
+        
+        origin = request.headers.get('Origin')
+        if origin and (origin in allowed_origins or any(origin.endswith(domain.replace('*', '')) for domain in allowed_origins)):
+            response.headers["Access-Control-Allow-Origin"] = origin
+        else:
+            response.headers["Access-Control-Allow-Origin"] = "http://localhost:8081"
+            
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+        response.headers["Access-Control-Allow-Methods"] = "GET,PUT,POST,DELETE,OPTIONS"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
+    
+    # Servir Flutter Web (Frontend)
     @app.route('/')
-    def index():
-        return jsonify({'message': 'Simple Split API - Backend funcionando!', 'version': '1.0.0'})
+    def serve_frontend():
+        try:
+            return send_file('static/index.html')
+        except:
+            return jsonify({'message': 'Simple Split API - Backend funcionando!', 'version': '1.0.0'})
+    
+    # Servir arquivos estáticos do Flutter
+    @app.route('/<path:filename>')
+    def serve_static(filename):
+        try:
+            return send_from_directory('static', filename)
+        except:
+            # Fallback para SPA (Single Page Application)
+            return send_file('static/index.html')
     
     @app.route('/api/health')
     def health():
