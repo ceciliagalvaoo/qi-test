@@ -1,6 +1,28 @@
 # The Simple Split - MVP
 
-Um aplicativo completo para divisão de despesas e marketplace de recebíveis, desenvolvido com **Flutter** (frontend) e **Python Flask** (backend), usando **SQLite** como banco de dados.
+## 📋 Sobre o Projeto
+
+**The Simple Split** é um aplicativo inovador que resolve dois problemas comuns:
+
+1. **📊 Divisão de Despesas em Grupo**: Como dividir a conta do restaurante, viagem ou aluguel de forma justa e automática?
+2. **💰 Liquidez de Recebíveis**: Como transformar dívidas pendentes em dinheiro imediato?
+
+### 🎯 O que o App Faz?
+
+- **Cria grupos** para diferentes ocasiões (viagem, república, projeto)
+- **Registra despesas** e divide automaticamente entre os participantes  
+- **Calcula quem deve para quem** com otimização automática de pagamentos
+- **Permite vender dívidas** no marketplace por um valor com desconto
+- **Oferece carteira digital** para pagamentos internos
+- **Gera insights financeiros** automáticos e alertas inteligentes
+
+### 🏗️ Arquitetura
+
+- **Frontend**: Flutter (iOS/Android/Web)
+- **Backend**: Python Flask com SQLAlchemy
+- **Banco**: SQLite (fácil deploy e desenvolvimento)
+- **Autenticação**: JWT tokens
+- **API**: RESTful com CORS habilitado
 
 ## 🚀 Características Principais
 
@@ -51,77 +73,179 @@ Um aplicativo completo para divisão de despesas e marketplace de recebíveis, d
 - **HTTP** - Comunicação com API
 - **Shared Preferences** - Armazenamento local
 
-## 🚀 Como Executar
+## 🚀 Como Rodar o Projeto
 
-### 1. Backend (API Python)
+### ⚡ Pré-requisitos
 
+Certifique-se de ter instalado:
+
+- **Python 3.8+** ([Download](https://www.python.org/downloads/))
+- **Flutter SDK 3.10+** ([Guia de instalação](https://docs.flutter.dev/get-started/install))
+- **Git** para clonar o repositório
+
+### 📦 1. Clone e Prepare o Projeto
+
+```bash
+# Clone o repositório
+git clone https://github.com/ceciliagalvaoo/qi-test.git
+cd qi-test
+
+# Crie ambiente virtual Python (recomendado)
+python -m venv .venv
+
+# Ative o ambiente virtual
+# Windows:
+.venv\Scripts\activate
+# Linux/Mac:
+source .venv/bin/activate
+```
+
+### 🐍 2. Configure o Backend (API Python)
+
+**Terminal 1 (Backend):**
 ```powershell
-# Navegue para o diretório do backend
+# Navegue para o backend e instale dependências (primeira vez)
 cd simple_split_backend
-
-# Instale as dependências
 pip install -r requirements.txt
 
-# Execute o servidor
+# Execute o servidor Flask
 python run.py
 ```
 
-O backend estará disponível em `http://localhost:5000`
+✅ **Backend rodando em**: `http://localhost:5000`
 
-### 2. Frontend (Flutter)
+### 📱 3. Configure o Frontend (Flutter)
 
+**Terminal 2 (Frontend):**
 ```powershell
-# Navegue para o diretório do frontend
+# Navegue para o frontend e instale dependências (primeira vez)
 cd simple_split_frontend
-
-# Instale as dependências
 flutter pub get
 
-# Execute o aplicativo
-flutter run
+# Execute o app Flutter na web (porta 8081)
+flutter run -d web-server --web-port=8081
 ```
 
-### 3. Testar o Backend
+✅ **Frontend rodando em**: `http://localhost:8081`
 
-Para verificar se o backend está funcionando corretamente:
+### 🧪 4. Teste se Está Funcionando
 
-```powershell
+**Teste a API:**
+```bash
 cd simple_split_backend
 python test_backend.py
 ```
 
-## 👤 Usuários Pré-cadastrados
+**Acesse pelo navegador:**
+- API: `http://localhost:5000/api/health`
+- App: `http://localhost:8081` (versão web)
 
-O sistema já vem com 3 usuários para teste:
+### 🔧 Troubleshooting
 
-| Nome     | Email                | Senha       | Score |
-|----------|---------------------|-------------|-------|
-| Pablo    | pablo@example.com   | password123 | 9.5   |
-| Cecília  | cecilia@example.com | password123 | 8.7   |
-| Mariana  | mariana@example.com | password123 | 9.2   |
+**Problema comum - Porta ocupada:**
+```bash
+# Matar processo na porta 5000 (Windows)
+netstat -ano | findstr :5000
+taskkill /PID <PID_NUMBER> /F
 
-## 📱 Principais Funcionalidades
+# Linux/Mac
+lsof -ti:5000 | xargs kill -9
+```
 
-### Dashboard Principal
-Menu inferior com 5 abas:
-- **Grupos**: Gestão de grupos e despesas
-- **Contatos**: Lista de contatos e recebíveis
-- **Insights**: Informações financeiras automáticas
-- **Marketplace**: Compra e venda de títulos
-- **Usuário**: Perfil e carteira digital
+**Flutter não encontrado:**
+```bash
+flutter doctor
+# Siga as instruções para resolver problemas
+```
 
-### Sistema de Logs Automáticos
-O aplicativo possui um sistema inteligente que:
-1. **Detecta dívidas cruzadas** entre usuários
-2. **Cancela automaticamente** dívidas equivalentes
-3. **Otimiza pagamentos** entre grupos
-4. **Gera logs** de todas as operações automáticas
+## 👤 Usuários para Teste
 
-### Sistema de Score
-O score do usuário (0-10) é calculado baseado em:
-- **+0.1 pontos**: Pagamento em dia
-- **-0.5 pontos**: Pagamento atrasado
-- **Benefícios**: Maior confiança no marketplace
+O sistema já vem com usuários pré-cadastrados para você testar:
+
+| Nome     | Email                | Senha       | 
+|----------|---------------------|-------------|
+| **Bia**    | bia@carnaval.com  | senha123 | 
+| **Caio**     | caio@carnaval.com   | senha123 | 
+| **Lucas**      | lucas@carnaval.com    | senha123 | 
+
+### 🎮 Fluxo de Teste Sugerido
+
+1. **Faça login como Lucas** → Veja títulos à venda no marketplace
+2. **Teste o marketplace** → Venda e compre títulos
+3. **Mude para Caio** → Veja carteira e histórico
+4. **Teste como Bia** → Explore insights e análise de gastos
+
+## 📱 Como Usar o App
+
+### 🏠 Dashboard Principal
+Menu inferior com 5 seções:
+
+| Seção | O que faz |
+|-------|-----------|
+| **🏠 Início** | Resumo geral, grupos e carteira |
+| **👥 Grupos** | Crie grupos, adicione despesas, veja dívidas |
+| **🛒 Marketplace** | Compre/venda títulos de recebíveis |
+| **📊 Insights** | Análise de gastos e alertas automáticos |
+| **👤 Perfil** | Carteira, score, dados pessoais |
+
+### 💡 Fluxo Típico de Uso
+
+```
+1. 👥 Criar Grupo
+   ↓ Ex: "Viagem Bahia 2025"
+
+2. 💰 Adicionar Despesas  
+   ↓ Ex: "Hotel R$ 400" → divide entre 4 pessoas
+
+3. 📊 Ver Quem Deve Para Quem
+   ↓ Sistema calcula automaticamente
+
+4. 💳 Pagar via Carteira
+   ↓ Ou vender no marketplace com desconto
+
+5. 🎯 Otimização Automática
+   ↓ Sistema cancela dívidas cruzadas
+```
+
+### 🤖 Funcionalidades Inteligentes
+
+**Otimização Automática:**
+- Detecta dívidas circulares (A→B→C→A)
+- Cancela automaticamente dívidas equivalentes
+- Reduz número de transações necessárias
+
+**Sistema de Score (0-10):**
+- Pagamentos pontuais = +0.1 pontos
+- Atrasos = -0.5 pontos  
+- Score alto = mais confiança no marketplace
+
+**Marketplace de Recebíveis:**
+- Venda suas dívidas por dinheiro imediato
+- Compre títulos com desconto
+- Transferência automática de propriedade
+
+## 🎯 Casos de Uso Reais
+
+### 🏠 **República/Apartamento Compartilhado**
+- Dividir aluguel, luz, internet, compras do mês
+- Cada um paga sua parte automaticamente
+- Sem "esqueci de pagar" ou cálculos manuais
+
+### ✈️ **Viagens em Grupo** 
+- Hotel, passagem, restaurantes, passeios
+- Divisão justa mesmo com pessoas gastando diferentes valores
+- Otimização automática: menos transferências bancárias
+
+### 🍕 **Noitadas e Rolês**
+- Dividir conta do bar, Uber, ingressos
+- Cada um paga o que consumiu ou divide igualmente
+- Pagamento via carteira digital na hora
+
+### 💼 **Freelancers/Pequenas Empresas**
+- Transformar recebíveis em dinheiro imediato
+- Vender títulos com desconto para ter fluxo de caixa
+- Sistema de confiabilidade via score
+
 
 ---
 

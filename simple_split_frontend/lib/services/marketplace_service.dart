@@ -15,7 +15,7 @@ class MarketplaceService {
 
   // Colocar dívida à venda
   static Future<Map<String, dynamic>> createReceivable({
-    required int debtId,
+    required String debtId,
     required double sellingPrice,
   }) async {
     try {
@@ -38,7 +38,7 @@ class MarketplaceService {
   }
 
   // Comprar título de recebível
-  static Future<Map<String, dynamic>> buyReceivable(int receivableId) async {
+  static Future<Map<String, dynamic>> buyReceivable(String receivableId) async {
     try {
       final response = await ApiService.post('/marketplace/buy/$receivableId', {});
 
@@ -80,7 +80,7 @@ class MarketplaceService {
   }
 
   // Cancelar venda de recebível
-  static Future<Map<String, dynamic>> cancelReceivable(int receivableId) async {
+  static Future<Map<String, dynamic>> cancelReceivable(String receivableId) async {
     try {
       final response = await ApiService.delete('/marketplace/cancel/$receivableId');
 

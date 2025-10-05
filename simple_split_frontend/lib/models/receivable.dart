@@ -1,10 +1,10 @@
 class Receivable {
-  final int id;
+  final String id;
   final String? ownerId; // Mudado de int para String (UUID)
   final String? ownerName;
   final String? buyerId; // Mudado de int para String (UUID)
   final String? buyerName;
-  final int? debtId;
+  final String? debtId;
   final double nominalAmount;
   final double sellingPrice;
   final double profitEstimated;
@@ -31,12 +31,12 @@ class Receivable {
 
   factory Receivable.fromJson(Map<String, dynamic> json) {
     return Receivable(
-      id: json['id'],
+      id: json['id'].toString(),
       ownerId: json['owner_id']?.toString(), // Garantir que seja String ou null
       ownerName: json['owner_name'],
       buyerId: json['buyer_id']?.toString(), // Garantir que seja String ou null
       buyerName: json['buyer_name'],
-      debtId: json['debt_id'],
+      debtId: json['debt_id']?.toString(),
       nominalAmount: json['nominal_amount'].toDouble(),
       sellingPrice: json['selling_price'].toDouble(),
       profitEstimated: json['profit_estimated'].toDouble(),
@@ -79,7 +79,7 @@ class Receivable {
 }
 
 class MarketplaceItem {
-  final int id;
+  final String id;
   final double nominalAmount;
   final double sellingPrice;
   final double profitEstimated;
@@ -101,7 +101,7 @@ class MarketplaceItem {
 
   factory MarketplaceItem.fromJson(Map<String, dynamic> json) {
     return MarketplaceItem(
-      id: json['id'],
+      id: json['id'].toString(),
       nominalAmount: json['nominal_amount'].toDouble(),
       sellingPrice: json['selling_price'].toDouble(),
       profitEstimated: json['profit_estimated'].toDouble(),

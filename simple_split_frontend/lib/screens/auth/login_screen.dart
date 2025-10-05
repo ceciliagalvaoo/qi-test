@@ -18,6 +18,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _passwordController = TextEditingController();
   bool _isPasswordVisible = false;
   bool _isLoading = false;
+  String? _errorMessage;
 
   @override
   void dispose() {
@@ -29,7 +30,10 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _handleLogin() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (mounted) setState(() => _isLoading = true);
+    if (mounted) setState(() {
+      _isLoading = true;
+      _errorMessage = null; // Limpar erro anterior
+    });
 
     final authProvider = context.read<AuthProvider>();
     final result = await authProvider.login(
@@ -40,34 +44,46 @@ class _LoginScreenState extends State<LoginScreen> {
     if (mounted) setState(() => _isLoading = false);
 
     if (mounted) {
-      print('[LoginScreen] Resultado do login: $result');
-      print('[LoginScreen] isAuthenticated: ${authProvider.isAuthenticated}');
-      print('[LoginScreen] isLoading: ${authProvider.isLoading}');
-      print('[LoginScreen] user: ${authProvider.user?.name}');
-      
       if (result['success']) {
-        print('[LoginScreen] Login bem-sucedido!');
-        print('[LoginScreen] Forçando navegação imediata para /dashboard');
+        // Login bem-sucedido
+        setState(() => _errorMessage = null);
         
-        // Forçar navegação imediata
-        if (mounted) {
-          context.go('/dashboard');
-          
-          // Mostrar feedback visual
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Login realizado com sucesso!'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
+        context.go('/dashboard');
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Login realizado com sucesso!'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 2),
+          ),
+        );
       } else {
-        print('[LoginScreen] Login falhou: ${result['error']}');
+        // Login falhou - definir mensagem de erro específica
+        String errorMsg = 'Erro ao fazer login';
+        
+        final error = result['error']?.toString().toLowerCase() ?? '';
+        
+        if (error.contains('invalid') || error.contains('incorrect') || 
+            error.contains('wrong') || error.contains('inválid')) {
+          errorMsg = 'Email ou senha incorretos. Verifique seus dados e tente novamente.';
+        } else if (error.contains('not found') || error.contains('não encontrado')) {
+          errorMsg = 'Usuário não encontrado. Verifique o email digitado.';
+        } else if (error.contains('password') || error.contains('senha')) {
+          errorMsg = 'Senha incorreta. Tente novamente.';
+        } else if (error.contains('network') || error.contains('connection')) {
+          errorMsg = 'Erro de conexão. Verifique sua internet e tente novamente.';
+        } else if (error.isNotEmpty) {
+          errorMsg = result['error'];
+        }
+        
+        setState(() => _errorMessage = errorMsg);
+        
+        // Também mostrar SnackBar para feedback imediato
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(result['error'] ?? 'Erro ao fazer login'),
+            content: Text(errorMsg),
             backgroundColor: AppColors.error,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -90,32 +106,36 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Logo e título
                 Column(
                   children: [
+                    // Logo da QiTech
                     Container(
-                      width: 80,
-                      height: 80,
+                      width: 100,
+                      height: 100,
                       decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [
-                            AppColors.primary,
-                            AppColors.primaryLight,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
                         borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Icon(
-                        Icons.account_balance_wallet_outlined,
-                        size: 40,
                         color: Colors.white,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 10,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Image.asset(
+                          'assets/images/logo_qitech.png',
+                          fit: BoxFit.contain,
+                        ),
                       ),
                     ),
                     
                     const SizedBox(height: 24),
                     
                     const Text(
-                      'Bem-vindo de volta',
+                      'Bem-vindo de volta ao The Simple Split',
                       style: AppTextStyles.title1,
+                      textAlign: TextAlign.center,
                     ),
                     
                     const SizedBox(height: 8),
@@ -139,6 +159,12 @@ class _LoginScreenState extends State<LoginScreen> {
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
                       autofocus: false,
+                      onChanged: (value) {
+                        // Limpar erro quando usuário começar a digitar
+                        if (_errorMessage != null) {
+                          setState(() => _errorMessage = null);
+                        }
+                      },
                       decoration: const InputDecoration(
                         labelText: 'Email',
                         hintText: 'seu@email.com',
@@ -161,6 +187,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     TextFormField(
                       controller: _passwordController,
                       obscureText: !_isPasswordVisible,
+                      onChanged: (value) {
+                        // Limpar erro quando usuário começar a digitar
+                        if (_errorMessage != null) {
+                          setState(() => _errorMessage = null);
+                        }
+                      },
                       decoration: InputDecoration(
                         labelText: 'Senha',
                         hintText: 'Digite sua senha',
@@ -186,7 +218,44 @@ class _LoginScreenState extends State<LoginScreen> {
                       },
                     ),
                     
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 16),
+                    
+                    // Container de erro
+                    if (_errorMessage != null) ...[
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: AppColors.error.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: AppColors.error.withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.error_outline,
+                              color: AppColors.error,
+                              size: 20,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                _errorMessage!,
+                                style: TextStyle(
+                                  color: AppColors.error,
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
                     
                     // Botão de Login
                     SizedBox(

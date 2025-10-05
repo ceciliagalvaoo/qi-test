@@ -115,10 +115,27 @@ class SimpleSplitApp extends StatelessWidget {
           builder: (context, state) => const GroupsScreen(),
         ),
         GoRoute(
-          path: '/groups/:id',
+          path: '/groups/:groupId',
           builder: (context, state) {
-            final id = int.parse(state.pathParameters['id']!);
-            return GroupDetailScreen(groupId: id);
+            final String? groupId = state.pathParameters['groupId'];
+            
+            print('[GoRouter] ===== DEBUG GRUPO =====');
+            print('[GoRouter] GroupId recebido: $groupId');
+            print('[GoRouter] Tipo: ${groupId.runtimeType}');
+            print('[GoRouter] É nulo? ${groupId == null}');
+            print('[GoRouter] Está vazio? ${groupId?.isEmpty}');
+            print('[GoRouter] =============================');
+            
+            if (groupId == null || groupId.isEmpty) {
+              return const Scaffold(
+                body: Center(child: Text('Grupo não encontrado')),
+              );
+            }
+            
+            // Retornar tela real do grupo
+            return GroupDetailScreen(groupId: groupId);
+            
+            // return GroupDetailScreen(groupId: groupId);
           },
         ),
 

@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../providers/auth_provider.dart';
+import '../../services/api_service.dart';
 import '../../utils/theme.dart';
+import '../../widgets/user_score_widget.dart';
 
 class UserScreen extends StatefulWidget {
   const UserScreen({super.key});
@@ -15,7 +18,13 @@ class _UserScreenState extends State<UserScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
   bool _isEditing = false;
+  bool _isLoading = true;
+  
+  // Dados do score
+  double _userScore = 0.0;
+  String? _scoreDescription;
 
   @override
   void initState() {
@@ -27,51 +36,144 @@ class _UserScreenState extends State<UserScreen> {
   void dispose() {
     _nameController.dispose();
     _emailController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
-  void _loadUserData() {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final user = authProvider.user;
+  void _loadUserData() async {
+    try {
+      // Buscar dados completos do perfil da API
+      final response = await ApiService.get('/user/profile');
+      
+      if (response['user'] != null) {
+        final userData = response['user'];
+        _nameController.text = userData['name'] ?? '';
+        _emailController.text = userData['email'] ?? '';
+        _phoneController.text = userData['phone'] ?? '';
+      }
+      
+      // Carregar dados do score
+      if (response['score_info'] != null) {
+        final scoreInfo = response['score_info'];
+        _userScore = (scoreInfo['current_score'] ?? 0.0).toDouble();
+        _scoreDescription = scoreInfo['description'];
+      }
+      
+    } catch (e) {
+      // Fallback para dados do AuthProvider se a API falhar
+      final authProvider = Provider.of<AuthProvider>(context, listen: false);
+      final user = authProvider.user;
+      
+      if (user != null) {
+        _nameController.text = user.name;
+        _emailController.text = user.email;
+        _phoneController.text = user.phone ?? '';
+      }
+      
+      print('Erro ao carregar dados do perfil: $e');
+    }
     
-    if (user != null) {
-      _nameController.text = user.name;
-      _emailController.text = user.email;
+    setState(() => _isLoading = false);
+  }
+
+  Future<void> _updateProfile() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final response = await ApiService.put('/user/profile', {
+        'name': _nameController.text,
+        'email': _emailController.text,
+        'phone': _phoneController.text.isEmpty ? null : _phoneController.text,
+      });
+
+      // Verificar se a resposta indica sucesso (pode ser 'success': true ou ter 'message')
+      if (response['success'] == true || response['message'] != null) {
+        // Recarregar dados do usuário no AuthProvider para atualizar todas as telas
+        final authProvider = Provider.of<AuthProvider>(context, listen: false);
+        await authProvider.refreshUserData();
+        
+        if (mounted) {
+          setState(() => _isEditing = false);
+          
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response['message'] ?? 'Perfil atualizado com sucesso!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(response['error'] ?? 'Erro ao atualizar perfil'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erro ao atualizar perfil: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      setState(() => _isLoading = false);
     }
   }
 
-  Future<void> _saveProfile() async {
-    if (!_formKey.currentState!.validate()) return;
+  void _showLogoutDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sair da Conta'),
+        content: const Text('Tem certeza que deseja sair da sua conta?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              Provider.of<AuthProvider>(context, listen: false).logout();
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Sair'),
+          ),
+        ],
+      ),
+    );
+  }
 
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-
-    try {
-      await authProvider.updateProfile(
-        name: _nameController.text.trim(),
-      );
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Perfil atualizado com sucesso!'),
-          backgroundColor: AppColors.success,
+  void _showAddAccountDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Adicionar Conta'),
+        content: const Text(
+          'Funcionalidade em desenvolvimento.\n\n'
+          'Em breve você poderá gerenciar múltiplas contas no mesmo dispositivo.',
         ),
-      );
-
-      setState(() => _isEditing = false);
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erro ao atualizar perfil: ${e.toString()}'),
-          backgroundColor: AppColors.error,
-        ),
-      );
-    }
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('Entendi'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Meu Perfil'),
         backgroundColor: AppColors.primary,
@@ -81,7 +183,7 @@ class _UserScreenState extends State<UserScreen> {
             TextButton(
               onPressed: () {
                 setState(() => _isEditing = false);
-                _loadUserData(); // Restaurar dados originais
+                _loadUserData();
               },
               child: const Text(
                 'Cancelar',
@@ -92,146 +194,134 @@ class _UserScreenState extends State<UserScreen> {
             IconButton(
               onPressed: () => setState(() => _isEditing = true),
               icon: const Icon(Icons.edit),
+              tooltip: 'Editar perfil',
             ),
         ],
       ),
-      body: Consumer<AuthProvider>(
-        builder: (context, authProvider, child) {
-          final user = authProvider.user;
-          
-          if (user == null) {
-            return const Center(child: Text('Erro ao carregar dados do usuário'));
-          }
-
-          return SingleChildScrollView(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                _buildProfileHeader(user),
-                
-                const SizedBox(height: 24),
-                
-                _buildProfileForm(),
-                
-                const SizedBox(height: 24),
-                
-                _buildStatsSection(user),
-                
-                const SizedBox(height: 24),
-                
-                _buildActionsSection(authProvider),
-              ],
-            ),
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildProfileHeader(dynamic user) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(24),
-        child: Column(
-          children: [
-            CircleAvatar(
-              radius: 50,
-              backgroundColor: AppColors.primaryLight.withOpacity(0.2),
-              child: Text(
-                user.name.substring(0, 1).toUpperCase(),
-                style: const TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.bold,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            Text(
-              user.name,
-              style: AppTextStyles.title2.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            
-            const SizedBox(height: 4),
-            
-            Text(
-              user.email,
-              style: AppTextStyles.subheadline.copyWith(
-                color: AppColors.onSurfaceVariant,
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            Container(
-              padding: const EdgeInsets.symmetric(
-                horizontal: 16,
-                vertical: 8,
-              ),
-              decoration: BoxDecoration(
-                color: AppColors.success.withOpacity(0.1),
-                borderRadius: BorderRadius.circular(20),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Icon(
-                    Icons.star,
-                    color: AppColors.success,
-                    size: 20,
+                  // Seção do score do usuário
+                  UserScoreWidget(
+                    score: _userScore,
+                    description: _scoreDescription,
                   ),
                   
-                  const SizedBox(width: 4),
+                  const SizedBox(height: 16),
                   
-                  Text(
-                    'Score: ${user.score?.toStringAsFixed(1) ?? '0.0'}',
-                    style: AppTextStyles.subheadline.copyWith(
-                      color: AppColors.success,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                  // Seção de dados pessoais
+                  _buildPersonalDataSection(),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // Seção de opções da conta
+                  _buildAccountOptionsSection(),
+                  
+                  const SizedBox(height: 32),
+                  
+                  // Botão salvar (só aparece quando está editando)
+                  if (_isEditing) _buildSaveButton(),
                 ],
               ),
             ),
-          ],
-        ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 4, // Perfil está no índice 4
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              context.go('/dashboard');
+              break;
+            case 1:
+              context.go('/groups');
+              break;
+            case 2:
+              context.go('/marketplace');
+              break;
+            case 3:
+              context.go('/insights');
+              break;
+            case 4:
+              // Já está na tela de perfil
+              break;
+          }
+        },
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: AppColors.surface,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.onSurfaceVariant,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Início',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.group_outlined),
+            activeIcon: Icon(Icons.group),
+            label: 'Grupos',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.storefront_outlined),
+            activeIcon: Icon(Icons.storefront),
+            label: 'Marketplace',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.insights_outlined),
+            activeIcon: Icon(Icons.insights),
+            label: 'Insights',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Perfil',
+          ),
+        ],
       ),
     );
   }
 
-  Widget _buildProfileForm() {
+  Widget _buildPersonalDataSection() {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Informações Pessoais',
-                style: AppTextStyles.headline.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
+              Row(
+                children: [
+                  Icon(Icons.person, color: AppColors.primary),
+                  const SizedBox(width: 8),
+                  const Text(
+                    'Dados Pessoais',
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
               
               const SizedBox(height: 16),
               
+              // Campo Nome
               TextFormField(
                 controller: _nameController,
                 enabled: _isEditing,
                 decoration: InputDecoration(
                   labelText: 'Nome',
-                  prefixIcon: const Icon(Icons.person),
-                  filled: !_isEditing,
-                  fillColor: _isEditing ? null : AppColors.surface,
+                  prefixIcon: const Icon(Icons.person_outline),
+                  border: _isEditing 
+                    ? const OutlineInputBorder()
+                    : const UnderlineInputBorder(),
                 ),
                 validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
+                  if (value?.isEmpty ?? true) {
                     return 'Nome é obrigatório';
                   }
                   return null;
@@ -240,39 +330,42 @@ class _UserScreenState extends State<UserScreen> {
               
               const SizedBox(height: 16),
               
+              // Campo Email
               TextFormField(
                 controller: _emailController,
                 enabled: _isEditing,
-                keyboardType: TextInputType.emailAddress,
                 decoration: InputDecoration(
                   labelText: 'Email',
-                  prefixIcon: const Icon(Icons.email),
-                  filled: !_isEditing,
-                  fillColor: _isEditing ? null : AppColors.surface,
+                  prefixIcon: const Icon(Icons.email_outlined),
+                  border: _isEditing 
+                    ? const OutlineInputBorder()
+                    : const UnderlineInputBorder(),
                 ),
                 validator: (value) {
-                  if (value == null || value.trim().isEmpty) {
+                  if (value?.isEmpty ?? true) {
                     return 'Email é obrigatório';
                   }
-                  if (!value.contains('@')) {
+                  if (!value!.contains('@')) {
                     return 'Email inválido';
                   }
                   return null;
                 },
               ),
               
-              if (_isEditing) ...[
-                const SizedBox(height: 24),
-                
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    onPressed: _saveProfile,
-                    icon: const Icon(Icons.save),
-                    label: const Text('Salvar Alterações'),
-                  ),
+              const SizedBox(height: 16),
+              
+              // Campo Telefone
+              TextFormField(
+                controller: _phoneController,
+                enabled: _isEditing,
+                decoration: InputDecoration(
+                  labelText: 'Telefone (opcional)',
+                  prefixIcon: const Icon(Icons.phone_outlined),
+                  border: _isEditing 
+                    ? const OutlineInputBorder()
+                    : const UnderlineInputBorder(),
                 ),
-              ],
+              ),
             ],
           ),
         ),
@@ -280,41 +373,22 @@ class _UserScreenState extends State<UserScreen> {
     );
   }
 
-  Widget _buildStatsSection(dynamic user) {
+  Widget _buildAccountOptionsSection() {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Estatísticas',
-              style: AppTextStyles.headline.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
             Row(
               children: [
-                Expanded(
-                  child: _buildStatItem(
-                    icon: Icons.account_balance_wallet,
-                    title: 'Saldo Atual',
-                    value: 'R\$ ${user.balance?.toStringAsFixed(2) ?? '0.00'}',
-                    color: AppColors.primary,
-                  ),
-                ),
-                
-                const SizedBox(width: 16),
-                
-                Expanded(
-                  child: _buildStatItem(
-                    icon: Icons.trending_up,
-                    title: 'Total Gasto',
-                    value: 'R\$ ${user.totalExpenses?.toStringAsFixed(2) ?? '0.00'}',
-                    color: AppColors.error,
+                Icon(Icons.settings, color: AppColors.primary),
+                const SizedBox(width: 8),
+                const Text(
+                  'Opções da Conta',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
@@ -322,28 +396,41 @@ class _UserScreenState extends State<UserScreen> {
             
             const SizedBox(height: 16),
             
-            Row(
-              children: [
-                Expanded(
-                  child: _buildStatItem(
-                    icon: Icons.group,
-                    title: 'Grupos Ativos',
-                    value: '${user.activeGroups ?? 0}',
-                    color: AppColors.success,
+            // Opção: Adicionar outra conta
+            ListTile(
+              leading: const Icon(Icons.add_circle_outline, color: Colors.blue),
+              title: const Text('Adicionar Outra Conta'),
+              subtitle: const Text('Gerencie múltiplas contas'),
+              onTap: _showAddAccountDialog,
+              contentPadding: EdgeInsets.zero,
+            ),
+            
+            const Divider(),
+            
+            // Opção: Configurações
+            ListTile(
+              leading: const Icon(Icons.settings_outlined, color: Colors.grey),
+              title: const Text('Configurações'),
+              subtitle: const Text('Notificações e privacidade'),
+              onTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Funcionalidade em desenvolvimento'),
                   ),
-                ),
-                
-                const SizedBox(width: 16),
-                
-                Expanded(
-                  child: _buildStatItem(
-                    icon: Icons.people,
-                    title: 'Contatos',
-                    value: '${user.contactsCount ?? 0}',
-                    color: AppColors.warning,
-                  ),
-                ),
-              ],
+                );
+              },
+              contentPadding: EdgeInsets.zero,
+            ),
+            
+            const Divider(),
+            
+            // Opção: Sair da conta
+            ListTile(
+              leading: const Icon(Icons.logout, color: Colors.red),
+              title: const Text('Sair da Conta'),
+              subtitle: const Text('Fazer logout do aplicativo'),
+              onTap: _showLogoutDialog,
+              contentPadding: EdgeInsets.zero,
             ),
           ],
         ),
@@ -351,146 +438,21 @@ class _UserScreenState extends State<UserScreen> {
     );
   }
 
-  Widget _buildStatItem({
-    required IconData icon,
-    required String title,
-    required String value,
-    required Color color,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: [
-          Icon(
-            icon,
-            color: color,
-            size: 28,
-          ),
-          
-          const SizedBox(height: 8),
-          
-          Text(
-            value,
-            style: AppTextStyles.headline.copyWith(
-              color: color,
-              fontWeight: FontWeight.w600,
-            ),
-          ),
-          
-          Text(
-            title,
-            style: AppTextStyles.caption1.copyWith(
-              color: color,
-            ),
-            textAlign: TextAlign.center,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildActionsSection(AuthProvider authProvider) {
-    return Column(
-      children: [
-        Card(
-          child: Column(
-            children: [
-              ListTile(
-                leading: const Icon(Icons.notifications),
-                title: const Text('Notificações'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Configurações de notificação em desenvolvimento'),
-                    ),
-                  );
-                },
-              ),
-              
-              const Divider(height: 1),
-              
-              ListTile(
-                leading: const Icon(Icons.security),
-                title: const Text('Privacidade e Segurança'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Configurações de segurança em desenvolvimento'),
-                    ),
-                  );
-                },
-              ),
-              
-              const Divider(height: 1),
-              
-              ListTile(
-                leading: const Icon(Icons.help),
-                title: const Text('Ajuda e Suporte'),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Central de ajuda em desenvolvimento'),
-                    ),
-                  );
-                },
-              ),
-            ],
-          ),
+  Widget _buildSaveButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: _updateProfile,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppColors.primary,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 16),
         ),
-        
-        const SizedBox(height: 16),
-        
-        Card(
-          child: ListTile(
-            leading: const Icon(
-              Icons.logout,
-              color: AppColors.error,
-            ),
-            title: const Text(
-              'Sair da Conta',
-              style: TextStyle(
-                color: AppColors.error,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-            onTap: () => _confirmLogout(authProvider),
-          ),
+        child: const Text(
+          'Salvar Alterações',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
         ),
-      ],
-    );
-  }
-
-  Future<void> _confirmLogout(AuthProvider authProvider) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Sair da Conta'),
-        content: const Text('Tem certeza que deseja sair da sua conta?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.error,
-            ),
-            child: const Text('Sair'),
-          ),
-        ],
       ),
     );
-
-    if (confirmed == true) {
-      await authProvider.logout();
-    }
   }
 }

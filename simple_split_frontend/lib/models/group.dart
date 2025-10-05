@@ -1,8 +1,8 @@
 class Group {
-  final int id;
+  final String id; // Mudado de int para String (UUID)
   final String name;
   final String? description;
-  final String createdBy; // Mudado de int para String (UUID)
+  final String createdBy; // UUID
   final String? creatorName;
   final DateTime? createdAt;
   final int membersCount;
@@ -21,16 +21,16 @@ class Group {
 
   factory Group.fromJson(Map<String, dynamic> json) {
     return Group(
-      id: json['id'],
-      name: json['name'],
-      description: json['description'],
+      id: json['id'].toString(), // Garantir que seja String (UUID)
+      name: json['name'].toString(),
+      description: json['description']?.toString(),
       createdBy: json['created_by'].toString(), // Garantir que seja String
-      creatorName: json['creator_name'],
+      creatorName: json['creator_name']?.toString(),
       createdAt: json['created_at'] != null 
           ? DateTime.parse(json['created_at']) 
           : null,
-      membersCount: json['members_count'],
-      totalExpenses: json['total_expenses'].toDouble(),
+      membersCount: (json['members_count'] ?? 0).toInt(),
+      totalExpenses: (json['total_expenses'] ?? 0.0).toDouble(),
     );
   }
 

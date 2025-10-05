@@ -1,7 +1,6 @@
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
-from flask_cors import CORS
 import os
 from datetime import timedelta
 
@@ -18,10 +17,13 @@ def create_app():
     app.config['JWT_SECRET_KEY'] = 'jwt-simple-split-secret-2025'
     app.config['JWT_ACCESS_TOKEN_EXPIRES'] = timedelta(hours=24)
     
+    # Evitar redirecionamentos automáticos que quebram CORS
+    app.url_map.strict_slashes = False
+    
     # Inicializar extensões
     db.init_app(app)
     jwt.init_app(app)
-    CORS(app)
+    # CORS será configurado manualmente nos handlers abaixo
     
     # Registrar blueprints
     from app.routes.auth import auth_bp
@@ -45,6 +47,25 @@ def create_app():
     # Rota de compatibilidade para /api/users/profile
     from app.routes.user import get_user_profile
     app.add_url_rule('/api/users/profile', 'users_profile', get_user_profile, methods=['GET'])
+    
+    # Handler global para CORS
+    @app.before_request
+    def handle_preflight():
+        if request.method == "OPTIONS":
+            response = jsonify()
+            response.headers["Access-Control-Allow-Origin"] = "http://localhost:8081"
+            response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+            response.headers["Access-Control-Allow-Methods"] = "GET,PUT,POST,DELETE,OPTIONS"
+            response.headers["Access-Control-Allow-Credentials"] = "true"
+            return response
+    
+    @app.after_request
+    def after_request(response):
+        response.headers["Access-Control-Allow-Origin"] = "http://localhost:8081"
+        response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+        response.headers["Access-Control-Allow-Methods"] = "GET,PUT,POST,DELETE,OPTIONS"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
     
     # Endpoint raiz de teste
     @app.route('/')

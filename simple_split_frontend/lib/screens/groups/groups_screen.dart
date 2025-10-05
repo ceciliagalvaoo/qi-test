@@ -150,6 +150,59 @@ class _GroupsScreenState extends State<GroupsScreen> {
       body: _isLoading 
           ? const Center(child: CircularProgressIndicator())
           : _buildGroupsList(),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: 1, // Grupos está no índice 1
+        onTap: (index) {
+          switch (index) {
+            case 0:
+              context.go('/dashboard');
+              break;
+            case 1:
+              // Já está na tela de grupos
+              break;
+            case 2:
+              context.go('/marketplace');
+              break;
+            case 3:
+              context.go('/insights');
+              break;
+            case 4:
+              context.go('/user');
+              break;
+          }
+        },
+        type: BottomNavigationBarType.fixed,
+        backgroundColor: AppColors.surface,
+        selectedItemColor: AppColors.primary,
+        unselectedItemColor: AppColors.onSurfaceVariant,
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.home_outlined),
+            activeIcon: Icon(Icons.home),
+            label: 'Início',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.group_outlined),
+            activeIcon: Icon(Icons.group),
+            label: 'Grupos',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.storefront_outlined),
+            activeIcon: Icon(Icons.storefront),
+            label: 'Marketplace',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.insights_outlined),
+            activeIcon: Icon(Icons.insights),
+            label: 'Insights',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Perfil',
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: _showCreateGroupDialog,
         backgroundColor: AppColors.primary,
@@ -231,7 +284,13 @@ class _GroupsScreenState extends State<GroupsScreen> {
       elevation: 2,
       color: AppColors.surface,
       child: InkWell(
-        onTap: () => context.go('/groups/${group['id']}'),
+        onTap: () {
+          final groupId = group['id']?.toString();
+          if (groupId != null && groupId.isNotEmpty) {
+            print('[GroupsScreen] Navegando para grupo: $groupId');
+            context.go('/groups/$groupId');
+          }
+        },
         borderRadius: BorderRadius.circular(12),
         child: Padding(
           padding: const EdgeInsets.all(16),

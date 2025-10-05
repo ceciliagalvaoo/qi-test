@@ -47,7 +47,7 @@ class ApiService {
   }
 
   // Método genérico para requisições GET
-  static Future<Map<String, dynamic>> get(String endpoint) async {
+  static Future<dynamic> get(String endpoint) async {
     final response = await http.get(
       Uri.parse('$baseUrl$endpoint'),
       headers: _headers,
@@ -57,7 +57,7 @@ class ApiService {
   }
 
   // Método genérico para requisições POST
-  static Future<Map<String, dynamic>> post(
+  static Future<dynamic> post(
     String endpoint, 
     Map<String, dynamic> data
   ) async {
@@ -71,7 +71,7 @@ class ApiService {
   }
 
   // Método genérico para requisições PUT
-  static Future<Map<String, dynamic>> put(
+  static Future<dynamic> put(
     String endpoint, 
     Map<String, dynamic> data
   ) async {
@@ -85,7 +85,7 @@ class ApiService {
   }
 
   // Método genérico para requisições DELETE
-  static Future<Map<String, dynamic>> delete(String endpoint) async {
+  static Future<dynamic> delete(String endpoint) async {
     final response = await http.delete(
       Uri.parse('$baseUrl$endpoint'),
       headers: _headers,
@@ -95,14 +95,14 @@ class ApiService {
   }
 
   // Tratar resposta da API
-  static Map<String, dynamic> _handleResponse(http.Response response) {
+  static dynamic _handleResponse(http.Response response) {
     final data = jsonDecode(response.body);
     
     if (response.statusCode >= 200 && response.statusCode < 300) {
       return data;
     } else {
       throw ApiException(
-        message: data['error'] ?? 'Erro desconhecido',
+        message: data is Map ? (data['error'] ?? 'Erro desconhecido') : 'Erro desconhecido',
         statusCode: response.statusCode,
       );
     }
@@ -113,7 +113,10 @@ class ApiService {
   // Buscar recebíveis disponíveis no marketplace
   static Future<List<Map<String, dynamic>>> getMarketplaceReceivables() async {
     final response = await get('/marketplace');
-    return List<Map<String, dynamic>>.from(response['receivables'] ?? []);
+    if (response is Map<String, dynamic>) {
+      return List<Map<String, dynamic>>.from(response['receivables'] ?? []);
+    }
+    return [];
   }
 
   // Comprar um recebível do marketplace

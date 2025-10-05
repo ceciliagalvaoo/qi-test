@@ -26,6 +26,7 @@ class Group(db.Model):
             'creator_name': self.creator.name if self.creator else None,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'members_count': len(self.members),
+            'expenses_count': len(self.expenses),
             'total_expenses': sum([expense.amount for expense in self.expenses])
         }
     
